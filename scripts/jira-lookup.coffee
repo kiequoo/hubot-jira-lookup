@@ -38,26 +38,18 @@ module.exports = (robot) ->
       .get() (err, res, body) ->
         try
           json = JSON.parse(body)
-          if json.fields.summary
-            unless json.fields.summary is null or json.fields.summary.nil? or json.fields.summary.empty?
-              json_summary = json.fields.summary
-          if json.fields.description
-            unless json.fields.description is null or json.fields.description.nil? or json.fields.description.empty?
-              desc_array = json.fields.description.split("\n")
-              json_description = ""
-              for item in desc_array[0..2]
-                json_description += item
-          if json.fields.assignee
-            unless json.fields.assignee is null or json.fields.assignee.nil? or json.fields.assignee.empty?
-              unless json.fields.assignee.name.nil? or json.fields.assignee.name.empty?
-                json_assignee = json.fields.assignee.name
-          if json.fields.status
-            unless json.fields.status is null or json.fields.status.nil? or json.fields.status.empty?
-              unless json.fields.status.name.nil? or json.fields.status.name.empty?
-                json_status = json.fields.status.name
-          if json.fields.components     
-            unless json.fields.components is null or json.fields.components.nil? or json.fields.components.empty?
-              json_components = (item.description for item in json.fields.components).join(", ")
+          if json.fields.summary?.length then json_summary = json.fields.summary
+          if json.fields.description?.length
+            desc_array = json.fields.description.split("\n")
+            json_description = ""
+            for item in desc_array[0..2]
+              json_description += item
+          if json.fields.assignee?.name?.length
+            json_assignee = json.fields.assignee.name
+          if json.fields.status?.name?.length
+            json_status = json.fields.status.name
+          if json.fields.components?.length     
+            json_components = (item.description for item in json.fields.components).join(", ")
 
           fallback = 'Issue:       #{json.key}: #{if json_summary? then json_summary}#{if json_description? then json_description}#{if json_assignee? then json_assignee}#{if json_status? then json_status}\n Link:        #{process.env.HUBOT_JIRA_LOOKUP_URL}/browse/#{json.key}\n'
           if process.env.HUBOT_SLACK_INCOMING_WEBHOOK?
