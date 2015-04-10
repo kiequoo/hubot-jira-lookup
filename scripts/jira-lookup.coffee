@@ -38,58 +38,69 @@ module.exports = (robot) ->
       .get() (err, res, body) ->
         try
           json = JSON.parse(body)
-          json_summary = ""
           if json.fields.summary
             unless json.fields.summary is null or json.fields.summary.nil? or json.fields.summary.empty?
               json_summary = json.fields.summary
-          json_description = ""
           if json.fields.description
-            json_description = "\n Description: "
             unless json.fields.description is null or json.fields.description.nil? or json.fields.description.empty?
               desc_array = json.fields.description.split("\n")
+              json_description = ""
               for item in desc_array[0..2]
                 json_description += item
-          json_assignee = ""
           if json.fields.assignee
-            json_assignee = "\n Assignee:    "
             unless json.fields.assignee is null or json.fields.assignee.nil? or json.fields.assignee.empty?
               unless json.fields.assignee.name.nil? or json.fields.assignee.name.empty?
-                json_assignee += json.fields.assignee.name
-          json_status = ""
+                json_assignee = json.fields.assignee.name
           if json.fields.status
-            json_status = "\n Status:      "
             unless json.fields.status is null or json.fields.status.nil? or json.fields.status.empty?
               unless json.fields.status.name.nil? or json.fields.status.name.empty?
-                json_status += json.fields.status.name
+                json_status = json.fields.status.name
+          if json.fields.components     
+            unless json.fields.components is null or json.fields.components.nil? or json.fields.components.empty?
+              json_components = (item.description for item in json.fields.components).join(", ")
+
+          fallback = 'Issue:       #{json.key}: #{if json_summary? then json_summary}#{if json_description? then json_description}#{if json_assignee? then json_assignee}#{if json_status? then json_status}\n Link:        #{process.env.HUBOT_JIRA_LOOKUP_URL}/browse/#{json.key}\n'
           if process.env.HUBOT_SLACK_INCOMING_WEBHOOK?
+
+            fields = []
+
+            if json_components?.length then fields.push {
+              title: 'Components'
+              value: json_components
+              short: true
+            }
+
+            if json_status?.length then fields.push {
+              title: 'Status'
+              value: json_status
+              short: true
+            } 
+
+            if json_assignee?.length then fields.push {
+              title: 'Assignee'
+              value: json_assignee
+              short: true
+            }
+
+            colorName = json?.fields?.status?.statusCategory?.colorName
+
+            color = if colorName == 'yellow' then "#ffd351" 
+            else if colorName == 'blueGray' then "#4a6785" 
+            else if colorName == 'green' then "#14892c" 
+            else '#aaa'
+
             robot.emit 'slack.attachment',
               message: msg.message
               content:
-                text: 'Issue details'
-                fallback: 'Issue:       #{json.key}: #{json_summary}#{json_description}#{json_assignee}#{json_status}\n Link:        #{process.env.HUBOT_JIRA_LOOKUP_URL}/browse/#{json.key}\n'
-                fields: [
-                  {
-                  title: 'Summary'
-                  value: "#{json_summary}"
-                  },
-                  {
-                  title: 'Description'
-                  value: "#{json_description}"
-                  },
-                  {
-                  title: 'Assignee'
-                  value: "#{json_assignee}"
-                  },
-                  {
-                  title: 'Status'
-                  value: "#{json_status}"
-                  },
-                  {
-                  title: 'Link'
-                  value: "<#{process.env.HUBOT_JIRA_LOOKUP_URL}/browse/#{json.key}>"
-                  }
-                ]
+                title: "#{json.key} - #{json_summary}"
+                title_link: "#{process.env.HUBOT_JIRA_LOOKUP_URL}/browse/#{json.key}"
+                fallback: fallback
+                fields: fields
+                text: json.fields.description
+                author_name: "@#{json.fields.reporter?.name}"
+                author_icon: json.fields.reporter?.avatarUrls?["16x16"]
+                color: color
           else
-            msg.send "Issue:       #{json.key}: #{json_summary}#{json_description}#{json_assignee}#{json_status}\n Link:        #{process.env.HUBOT_JIRA_LOOKUP_URL}/browse/#{json.key}\n"
+            msg.send fallback
         catch error
-          console.log "Issue #{json.key} not found"
+          console.log "Issue #{json.key} not found: #{error}"
