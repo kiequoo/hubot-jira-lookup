@@ -18,21 +18,49 @@
 #   Benjamin Sherman  <benjamin@jivesoftware.com> (http://www.jivesoftware.com)
 #   Dustin Miller <dustin@sharepointexperts.com> (http://sharepointexperience.com)
 
+sendJiraWarn = (robot, msg, name, color, value, max, min) ->
+  text = if max? then "#{name} has #{value} tickets, when max is #{max}" else 
+    if min? then "#{name} has #{value} tickets, when min is #{min}"
+  if process.env.HUBOT_SLACK_INCOMING_WEBHOOK?
+    robot.emit 'slack.attachment',
+      message: text
+      content:
+        color: color
+  else msg.send "#{color}: #{text}"      
+
 module.exports = (robot) ->
+  user = process.env.HUBOT_JIRA_LOOKUP_USERNAME
+  pass = process.env.HUBOT_JIRA_LOOKUP_PASSWORD
+  url = process.env.HUBOT_JIRA_LOOKUP_URL
+  auth = 'Basic ' + new Buffer(user + ':' + pass).toString('base64')
 
   ignored_users = process.env.HUBOT_JIRA_LOOKUP_IGNORE_USERS
   if ignored_users == undefined
     ignored_users = "jira|github"
 
+  robot.respond /jira\s+warn?(?:\s+me)?$/i, (msg) ->
+    robot.http("#{url}/rest/greenhopper/1.0/xboard/work/allData.json?rapidViewId=7")
+      .headers(Authorization: auth, Accept: 'application/json')
+      .get() (err, res, body) ->
+        try
+          json = JSON.parse(body)
+          for column in json.columnsData.columns
+            if column.max?
+              if column.statisticsFieldValue > column.max
+                sendJiraWarn(robot, msg, column.name, "danger", column.statisticsFieldValue, column.max)
+              else if (column.max - column.statisticsFieldValue) <= 2
+                sendJiraWarn(robot, msg, column.name, "warning", column.statisticsFieldValue, column.max)
+           if column.min?
+              if column.statisticsFieldValue < column.min
+                sendJiraWarn(robot, msg, column.name, "danger", column.statisticsFieldValue, undefined, column.min)
+              else if (column.statisticsFieldValue - column.min) <= 2
+                sendJiraWarn(robot, msg, column.name, "warning", column.statisticsFieldValue, undefined, column.min)    
+        catch error
+          console.log "Could not get board from Jira: #{error}"
+
   robot.hear /\b[a-zA-Z]{2,5}-[0-9]{1,5}\b/, (msg) ->
-
     return if msg.message.user.name.match(new RegExp(ignored_users, "gi"))
-
     issue = msg.match[0]
-    user = process.env.HUBOT_JIRA_LOOKUP_USERNAME
-    pass = process.env.HUBOT_JIRA_LOOKUP_PASSWORD
-    url = process.env.HUBOT_JIRA_LOOKUP_URL
-    auth = 'Basic ' + new Buffer(user + ':' + pass).toString('base64')
     robot.http("#{url}/rest/api/latest/issue/#{issue}")
       .headers(Authorization: auth, Accept: 'application/json')
       .get() (err, res, body) ->
