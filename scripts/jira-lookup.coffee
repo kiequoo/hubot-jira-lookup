@@ -18,6 +18,9 @@
 #   Benjamin Sherman  <benjamin@jivesoftware.com> (http://www.jivesoftware.com)
 #   Dustin Miller <dustin@sharepointexperts.com> (http://sharepointexperience.com)
 
+splitName = (name) ->
+  name.replace(/([A-Z])/g, ' $1')
+
 module.exports = (robot) ->
   user = process.env.HUBOT_JIRA_LOOKUP_USERNAME
   pass = process.env.HUBOT_JIRA_LOOKUP_PASSWORD
@@ -38,12 +41,12 @@ module.exports = (robot) ->
           errorMinCols = (column for column in json.columnsData.columns when column.min? and column.statisticsFieldValue < column.min)
 
           if errorMaxCols?.length > 0 or errorMinCols?.length > 0
-            fallbackMax = ("#{col.name} has #{col.statisticsFieldValue} tickets from a max of #{col.max}" for col in errorMaxCols).join("\n") 
-            fallbackMin = ("#{col.name} only has #{col.statisticsFieldValue} tickets, but min is #{col.min}" for col in errorMinCols).join("\n") 
+            fallbackMax = ("#{splitName(col.name)} has #{col.statisticsFieldValue} tickets from a max of #{col.max}" for col in errorMaxCols).join("\n") 
+            fallbackMin = ("#{splitName(col.name)} only has #{col.statisticsFieldValue} tickets, but min is #{col.min}" for col in errorMinCols).join("\n") 
             fallback = fallbackMax + fallbackMin
 
-            fieldsMax = ({title: col.name, value: "has #{col.statisticsFieldValue} tickets from a max of #{col.max}"} for col in errorMaxCols)
-            fieldsMin = ({title: col.name, value: "only has #{col.statisticsFieldValue} tickets, but min is #{col.min}", short: true} for col in errorMinCols)
+            fieldsMax = ({title: splitName(col.name), value: "has #{col.statisticsFieldValue} tickets from a max of #{col.max}"} for col in errorMaxCols)
+            fieldsMin = ({title: splitName(col.name), value: "only has #{col.statisticsFieldValue} tickets, but min is #{col.min}", short: true} for col in errorMinCols)
             fields = fieldsMax.concat fieldsMin
 
             console.log errorMaxCols
