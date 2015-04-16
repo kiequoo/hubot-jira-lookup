@@ -23,8 +23,9 @@ sendJiraWarn = (robot, msg, name, color, value, max, min) ->
     if min? then "#{name} has #{value} tickets, when min is #{min}"
   if process.env.HUBOT_SLACK_INCOMING_WEBHOOK?
     robot.emit 'slack.attachment',
-      message: text
+      message: msg.message
       content:
+        title: text
         color: color
   else msg.send "#{color}: #{text}"      
 
