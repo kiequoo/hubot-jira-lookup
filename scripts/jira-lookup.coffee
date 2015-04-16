@@ -40,7 +40,7 @@ module.exports = (robot) ->
           if errorMaxCols?.length > 0 or errorMinCols?.length > 0
             fallbackMax = ("#{col.name}: #{col.statisticsFieldValue} > #{col.max}" for col in errorMaxCols).join("\n") 
             fallbackMin = ("#{col.name}: #{col.statisticsFieldValue} < #{col.min}" for col in errorMinCols).join("\n") 
-            fallback = fallbackMax ++ fallbackMin
+            fallback = fallbackMax + fallbackMin
 
             fields = ({title: col.name, value: "#{col.statisticsFieldValue} > #{col.max}", short: true} for col in errorMaxCols) +
               ({title: col.name, value: "#{col.statisticsFieldValue} < #{col.min}", short: true} for col in errorMaxCols)
