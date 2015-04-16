@@ -43,7 +43,11 @@ module.exports = (robot) ->
             fallback = fallbackMax + fallbackMin
 
             fields = ({title: col.name, value: "#{col.statisticsFieldValue} > #{col.max}", short: true} for col in errorMaxCols) +
-              ({title: col.name, value: "#{col.statisticsFieldValue} < #{col.min}", short: true} for col in errorMaxCols)
+              ({title: col.name, value: "#{col.statisticsFieldValue} < #{col.min}", short: true} for col in errorMinCols)
+
+            console.log errorMaxCols
+            console.log errorMinCols
+            console.log fields  
 
             if process.env.HUBOT_SLACK_INCOMING_WEBHOOK?
               robot.emit 'slack.attachment',
