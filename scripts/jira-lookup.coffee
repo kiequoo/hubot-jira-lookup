@@ -49,10 +49,6 @@ module.exports = (robot) ->
             fieldsMin = ({title: splitName(col.name), value: "only has #{col.statisticsFieldValue} tickets, but min is #{col.min}", short: true} for col in errorMinCols)
             fields = fieldsMax.concat fieldsMin
 
-            console.log errorMaxCols
-            console.log errorMinCols
-            console.log fields  
-
             if process.env.HUBOT_SLACK_INCOMING_WEBHOOK?
               robot.emit 'slack.attachment',
                 message: msg.message
@@ -62,6 +58,17 @@ module.exports = (robot) ->
                   fields: fields
                   color: "danger"
             else msg.send fallback
+          else 
+            fallback = "All looking good on JIRA"
+            if process.env.HUBOT_SLACK_INCOMING_WEBHOOK?
+              robot.emit 'slack.attachment',
+                message: msg.message
+                content:
+                  title: fallback
+                  fallback: fallback
+                  color: "good"
+            else msg.send fallback     
+            
         catch error
           console.log "Could not get board from Jira: #{error}: #{error.stack}"
 
