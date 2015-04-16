@@ -19,13 +19,14 @@
 #   Dustin Miller <dustin@sharepointexperts.com> (http://sharepointexperience.com)
 
 sendJiraWarn = (robot, msg, name, color, value, max, min) ->
-  text = if max? then "#{name} has #{value} tickets, when max is #{max}" else 
-    if min? then "#{name} has #{value} tickets, when min is #{min}"
+  splitName = name.replace(/([A-Z])/g, ' $1')
+  text = if max? then "#{splitName} has #{value} tickets, when max is #{max}" else 
+    if min? then "#{splitName} has #{value} tickets, when min is #{min}"
   if process.env.HUBOT_SLACK_INCOMING_WEBHOOK?
     robot.emit 'slack.attachment',
       message: msg.message
       content:
-        title: text
+        text: text
         color: color
   else msg.send "#{color}: #{text}"      
 
