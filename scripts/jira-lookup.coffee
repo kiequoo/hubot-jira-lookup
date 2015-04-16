@@ -38,12 +38,12 @@ module.exports = (robot) ->
           errorMinCols = (column for column in json.columnsData.columns when column.min? and column.statisticsFieldValue < column.min)
 
           if errorMaxCols?.length > 0 or errorMinCols?.length > 0
-            fallbackMax = ("#{col.name}: #{col.statisticsFieldValue} > #{col.max}" for col in errorMaxCols).join("\n") 
-            fallbackMin = ("#{col.name}: #{col.statisticsFieldValue} < #{col.min}" for col in errorMinCols).join("\n") 
+            fallbackMax = ("#{col.name} has #{col.statisticsFieldValue} tickets from a max of #{col.max}" for col in errorMaxCols).join("\n") 
+            fallbackMin = ("#{col.name} only has #{col.statisticsFieldValue} tickets, but min is #{col.min}" for col in errorMinCols).join("\n") 
             fallback = fallbackMax + fallbackMin
 
-            fieldsMax = ({title: col.name, value: "#{col.statisticsFieldValue} > #{col.max}", short: true} for col in errorMaxCols)
-            fieldsMin = ({title: col.name, value: "#{col.statisticsFieldValue} < #{col.min}", short: true} for col in errorMinCols)
+            fieldsMax = ({title: col.name, value: "has #{col.statisticsFieldValue} tickets from a max of #{col.max}"} for col in errorMaxCols)
+            fieldsMin = ({title: col.name, value: "only has #{col.statisticsFieldValue} tickets, but min is #{col.min}", short: true} for col in errorMinCols)
             fields = fieldsMax.concat fieldsMin
 
             console.log errorMaxCols
