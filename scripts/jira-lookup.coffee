@@ -18,18 +18,6 @@
 #   Benjamin Sherman  <benjamin@jivesoftware.com> (http://www.jivesoftware.com)
 #   Dustin Miller <dustin@sharepointexperts.com> (http://sharepointexperience.com)
 
-sendJiraWarn = (robot, msg, name, color, value, max, min) ->
-  splitName = name.replace(/([A-Z])/g, ' $1')
-  text = if max? then "#{splitName} has #{value} tickets, when max is #{max}" else 
-    if min? then "#{splitName} has #{value} tickets, when min is #{min}"
-  if process.env.HUBOT_SLACK_INCOMING_WEBHOOK?
-    robot.emit 'slack.attachment',
-      message: msg.message
-      content:
-        text: text
-        color: color
-  else msg.send "#{color}: #{text}"      
-
 module.exports = (robot) ->
   user = process.env.HUBOT_JIRA_LOOKUP_USERNAME
   pass = process.env.HUBOT_JIRA_LOOKUP_PASSWORD
@@ -46,17 +34,26 @@ module.exports = (robot) ->
       .get() (err, res, body) ->
         try
           json = JSON.parse(body)
-          for column in json.columnsData.columns
-            if column.max?
-              if column.statisticsFieldValue > column.max
-                sendJiraWarn(robot, msg, column.name, "danger", column.statisticsFieldValue, column.max)
-              else if (column.max - column.statisticsFieldValue) <= 2
-                sendJiraWarn(robot, msg, column.name, "warning", column.statisticsFieldValue, column.max)
-           if column.min?
-              if column.statisticsFieldValue < column.min
-                sendJiraWarn(robot, msg, column.name, "danger", column.statisticsFieldValue, undefined, column.min)
-              else if (column.statisticsFieldValue - column.min) <= 2
-                sendJiraWarn(robot, msg, column.name, "warning", column.statisticsFieldValue, undefined, column.min)    
+          errorMaxCols = (column for column in json.columnsData.columns when column.max? and column.statisticsFieldValue > column.max)
+          errorMinCols = (column for column in json.columnsData.columns when column.min? and column.statisticsFieldValue < column.min)
+
+          if errorMaxCols?.length > 0 or errorMinCols?.length > 0
+            fallbackMax = ("#{col.name}: #{col.statisticsFieldValue} > #{col.max}" for col in errorMaxCols).join("\n") 
+            fallbackMin = ("#{col.name}: #{col.statisticsFieldValue} < #{col.min}" for col in errorMinCols).join("\n") 
+            fallback = fallbackMax ++ fallbackMin
+
+            fields = ({title: col.name, value: "#{col.statisticsFieldValue} > #{col.max}", short: true} for col in errorMaxCols) +
+              ({title: col.name, value: "#{col.statisticsFieldValue} < #{col.min}", short: true} for col in errorMaxCols)
+
+            if process.env.HUBOT_SLACK_INCOMING_WEBHOOK?
+              robot.emit 'slack.attachment',
+                message: msg.message
+                content:
+                  title: "We have a JIRA problem!"
+                  fallback: fallback
+                  fields: fields
+                  color: "danger"
+            else msg.send fallback
         catch error
           console.log "Could not get board from Jira: #{error}: #{error.stack}"
 
