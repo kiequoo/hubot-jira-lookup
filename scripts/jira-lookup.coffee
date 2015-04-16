@@ -56,7 +56,7 @@ module.exports = (robot) ->
               else if (column.statisticsFieldValue - column.min) <= 2
                 sendJiraWarn(robot, msg, column.name, "warning", column.statisticsFieldValue, undefined, column.min)    
         catch error
-          console.log "Could not get board from Jira: #{error}"
+          console.log "Could not get board from Jira: #{error}: #{error.stack}"
 
   robot.hear /\b[a-zA-Z]{2,5}-[0-9]{1,5}\b/, (msg) ->
     return if msg.message.user.name.match(new RegExp(ignored_users, "gi"))
